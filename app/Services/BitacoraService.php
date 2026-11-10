@@ -24,7 +24,7 @@ class BitacoraService
             'tipo_evento' => $tipoEvento,
             'entidad' => $entidad,
             'entidad_id' => $entidadId,
-            'detalle' => $detalle,
+            'detalle' => $detalle ?? $tipoEvento,
             'requiere_atencion' => $requiereAtencion,
         ]);
     }

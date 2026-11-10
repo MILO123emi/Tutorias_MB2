@@ -30,8 +30,16 @@ class CitacionController extends Controller
         $citacion = Citacion::where('user_id', $request->user()->id)->findOrFail($id);
 
         if ($citacion->enterado_at === null) {
-            $citacion->update(['enterado_at' => now()]);
-            $this->bitacora->registrar($request->user(), 'CITACION_ENTERADA', 'citaciones', $citacion->id);
+            // 'enterado_at' no es fillable a propósito: se asigna directo.
+            $citacion->enterado_at = now();
+            $citacion->save();
+            $this->bitacora->registrar(
+                $request->user(),
+                'CITACION_ENTERADA',
+                'citaciones',
+                $citacion->id,
+                "El usuario marcó la citación #{$citacion->id} como enterada.",
+            );
         }
 
         return response()->json(['message' => 'Marcaste la citación como enterada.']);

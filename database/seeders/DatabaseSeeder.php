@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             MateriaSeeder::class,
             ParametroSeeder::class,
             AdminSeeder::class,
+            EstudiantePruebaSeeder::class,
         ]);
     }
 }
