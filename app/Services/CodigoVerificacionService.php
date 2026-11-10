@@ -117,4 +117,37 @@ class CodigoVerificacionService
 
         throw ValidationException::withMessages(['codigo' => [$resultado['error']]]);
     }
+
+    /**
+     * Busca el registro por su token (comparando el hash) y verifica que siga vigente.
+     * Debe llamarse dentro de una transacción: bloquea la fila para que el token
+     * no se consuma dos veces al mismo tiempo. Lanza un 422 si no es válido o venció.
+     */
+    public function validarTokenRegistro(string $token, string $tipo): CodigoVerificacion
+    {
+        $registro = CodigoVerificacion::where('tipo', $tipo)
+            ->where('token_registro_hash', hash('sha256', $token))
+            ->lockForUpdate()
+            ->first();
+
+        if (! $registro || ! $registro->token_registro_expira_at || $registro->token_registro_expira_at->isPast()) {
+            throw ValidationException::withMessages([
+                'registro_token' => ['El registro no es válido o venció. Pide un código nuevo.'],
+            ]);
+        }
+
+        return $registro;
+    }
+
+    /**
+     * Invalida el token de registro para que sirva una sola vez: si lo vuelven a
+     * mandar, validarTokenRegistro ya no lo encuentra y responde 422.
+     */
+    public function consumirTokenRegistro(CodigoVerificacion $registro): void
+    {
+        $registro->update([
+            'token_registro_hash' => null,
+            'token_registro_expira_at' => null,
+        ]);
+    }
 }

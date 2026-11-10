@@ -33,9 +33,10 @@ return new class extends Migration
             $table->timestamp('asistencia_confirmada_at')->nullable();
 
             // Columna generada: vale 1 mientras la tutoría ocupa el bloque, y NULL si no.
-            // MySQL permite varios NULL en un índice único, así que solo chocan las activas.
+            // Varios NULL conviven en un índice único, así que solo chocan las activas.
+            // CASE WHEN funciona igual en MySQL y en SQLite.
             $table->unsignedTinyInteger('slot_activo')->nullable()
-                  ->virtualAs("IF(estado IN ('CONFIRMADA', 'COMPLETADA'), 1, NULL)");
+                  ->virtualAs("CASE WHEN estado IN ('CONFIRMADA', 'COMPLETADA') THEN 1 END");
 
             $table->timestamps();
 
