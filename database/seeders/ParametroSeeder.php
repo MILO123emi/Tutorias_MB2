@@ -11,11 +11,10 @@ class ParametroSeeder extends Seeder
     {
         // Valores provisionales (pendiente 15 del análisis). La admin los cambia desde la web.
         $parametros = [
-            'max_tutorias_por_dia' => '4',                  // vacío = sin límite (RN-05)
+            'max_tutorias_por_dia' => '4',                  // tope de tutorías por día por tutor; vacío = sin límite (RN-05)
             'anticipacion_min_minutos' => '60',             // RN-16
             'horas_para_confirmar' => '24',                 // ventana para confirmar asistencia (9.2)
             'horas_para_sin_confirmar' => '48',             // después pasa a SIN_CONFIRMAR (9.1)
-            'max_bloques_estudiante_tutor_dia' => '2',      // RN-21
         ];
 
         foreach ($parametros as $clave => $valor) {

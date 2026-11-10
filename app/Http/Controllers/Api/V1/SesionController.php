@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Dispositivo;
 use App\Services\CuentaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,13 @@ class SesionController extends Controller
     // POST /api/v1/auth/logout
     public function logout(Request $request): JsonResponse
     {
+        // Si la app manda su token FCM, se borra el dispositivo para no seguir mandándole push.
+        if ($fcmToken = $request->input('fcm_token')) {
+            Dispositivo::where('user_id', $request->user()->id)
+                ->where('fcm_token', $fcmToken)
+                ->delete();
+        }
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Sesión cerrada.']);

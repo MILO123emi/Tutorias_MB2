@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CarreraController;
+use App\Http\Controllers\Api\V1\CitacionController;
+use App\Http\Controllers\Api\V1\DispositivoController;
+use App\Http\Controllers\Api\V1\MateriaController;
+use App\Http\Controllers\Api\V1\NotificacionController;
+use App\Http\Controllers\Api\V1\PerfilController;
 use App\Http\Controllers\Api\V1\RecuperacionController;
 use App\Http\Controllers\Api\V1\RegistroController;
 use App\Http\Controllers\Api\V1\SesionController;
@@ -28,5 +34,33 @@ Route::prefix('v1')->group(function () {
             Route::post('logout', [SesionController::class, 'logout']);
             Route::get('yo', [SesionController::class, 'yo']);
         });
+    });
+
+    // ---------- Cualquier rol (con token) ----------
+    Route::middleware(['auth:sanctum', 'cuenta.activa'])->group(function () {
+        // Catálogos
+        Route::get('carreras', [CarreraController::class, 'index']);
+        Route::get('materias', [MateriaController::class, 'index']);
+
+        // Perfil
+        Route::get('perfil', [PerfilController::class, 'show']);
+        Route::put('perfil', [PerfilController::class, 'update']);
+        Route::put('perfil/password', [PerfilController::class, 'updatePassword']);
+        Route::post('perfil/foto', [PerfilController::class, 'subirFoto']);
+        Route::get('perfil/foto/solicitud', [PerfilController::class, 'solicitudFoto']);
+
+        // Notificaciones (campanita)
+        Route::get('notificaciones', [NotificacionController::class, 'index']);
+        Route::get('notificaciones/no-leidas', [NotificacionController::class, 'noLeidas']);
+        Route::post('notificaciones/leer-todas', [NotificacionController::class, 'leerTodas']);
+        Route::post('notificaciones/{id}/leida', [NotificacionController::class, 'leida']);
+
+        // Citaciones del usuario
+        Route::get('citaciones', [CitacionController::class, 'index']);
+        Route::post('citaciones/{id}/enterado', [CitacionController::class, 'enterado']);
+
+        // Dispositivos para push (FCM)
+        Route::post('dispositivos', [DispositivoController::class, 'store']);
+        Route::delete('dispositivos', [DispositivoController::class, 'destroy']);
     });
 });

@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SolicitudFoto extends Model
 {
+    use HasFactory;
+
     protected $table = 'solicitudes_foto';
 
     // 'estado', 'motivo_rechazo' y 'revisado_por' los cambia la admin desde el servidor.

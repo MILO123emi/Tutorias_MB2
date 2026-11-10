@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Citacion extends Model
 {
+    use HasFactory;
+
     protected $table = 'citaciones';
 
     // 'enterado_at' lo marca el citado desde su propio endpoint.
