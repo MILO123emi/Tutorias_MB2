@@ -9,11 +9,16 @@ class CarreraSeeder extends Seeder
 {
     public function run(): void
     {
-        // Ejemplos: ajústalos a las carreras reales
         $carreras = [
+            ['nombre' => 'Administración de Empresas', 'facultad' => 'Ciencias Económicas y Administrativas'],
+            ['nombre' => 'Finanzas', 'facultad' => 'Ciencias Económicas y Administrativas'],
+            ['nombre' => 'Arquitectura', 'facultad' => 'Ingeniería'],
+            ['nombre' => 'Ingeniería Civil', 'facultad' => 'Ingeniería'],
             ['nombre' => 'Ingeniería en Ciencias de la Computación', 'facultad' => 'Ingeniería'],
             ['nombre' => 'Ingeniería Industrial', 'facultad' => 'Ingeniería'],
-            ['nombre' => 'Administración de Empresas', 'facultad' => 'Ciencias Económicas y Administrativas'],
+            ['nombre' => 'Derecho', 'facultad' => 'Ciencias Jurídicas'],
+            ['nombre' => 'Enfermería', 'facultad' => 'Ciencias de la Salud'],
+            ['nombre' => 'Psicología', 'facultad' => 'Ciencias Sociales'],
         ];
 
         foreach ($carreras as $carrera) {
