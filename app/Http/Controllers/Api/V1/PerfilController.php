@@ -19,7 +19,7 @@ class PerfilController extends Controller
     // GET /api/v1/perfil
     public function show(Request $request): JsonResponse
     {
-        return response()->json(['usuario' => new UserResource($request->user())]);
+        return response()->json(['usuario' => new UserResource($request->user()->load('carrera'))]);
     }
 
     // PUT /api/v1/perfil
@@ -29,7 +29,7 @@ class PerfilController extends Controller
 
         return response()->json([
             'message' => 'Perfil actualizado.',
-            'usuario' => new UserResource($usuario),
+            'usuario' => new UserResource($usuario->load('carrera')),
         ]);
     }
 

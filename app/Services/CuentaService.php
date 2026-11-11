@@ -20,7 +20,24 @@ class CuentaService
      */
     public function completarRegistro(string $token, array $datos, string $dispositivo): array
     {
-        return DB::transaction(function () use ($token, $datos, $dispositivo) {
+        $user = $this->crearEstudianteDesdeRegistro($token, $datos);
+
+        return [
+            'user' => $user,
+            'token' => $user->createToken($dispositivo)->plainTextToken,
+        ];
+    }
+
+    /**
+     * Consume el registro_token (un solo uso) y crea el usuario ESTUDIANTE ya
+     * verificado, dentro de una transacción. Lo comparten la API (que le agrega un
+     * token de Sanctum) y la web (que inicia sesión por cookie).
+     *
+     * @param  array{name: string, carrera_id: int, telefono: string, password: string}  $datos
+     */
+    public function crearEstudianteDesdeRegistro(string $token, array $datos): User
+    {
+        return DB::transaction(function () use ($token, $datos) {
             $registro = $this->codigos->validarTokenRegistro($token, 'VERIFICAR_CORREO');
 
             // 'rol' y 'activo' no están en fillable: se asignan con forceFill a propósito.
@@ -38,10 +55,7 @@ class CuentaService
 
             $this->codigos->consumirTokenRegistro($registro);
 
-            return [
-                'user' => $user,
-                'token' => $user->createToken($dispositivo)->plainTextToken,
-            ];
+            return $user;
         });
     }
 

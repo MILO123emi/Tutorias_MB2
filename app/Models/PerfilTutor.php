@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PerfilTutor extends Model
 {
+    use HasFactory;
+
     protected $table = 'perfil_tutor';
 
     // Los campos de caché (promedio, totales) y el estado de aprobación

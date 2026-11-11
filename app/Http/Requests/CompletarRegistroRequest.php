@@ -13,6 +13,18 @@ class CompletarRegistroRequest extends FormRequest
     }
 
     /**
+     * Deja el teléfono solo con dígitos antes de validar (acepta "1234-5678").
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('telefono')) {
+            $this->merge([
+                'telefono' => preg_replace('/\D/', '', (string) $this->input('telefono')),
+            ]);
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -21,7 +33,7 @@ class CompletarRegistroRequest extends FormRequest
             'registro_token' => ['required', 'string'],
             'name' => ['required', 'string', 'max:255'],
             'carrera_id' => ['required', 'integer', 'exists:carreras,id'],
-            'telefono' => ['required', 'string', 'max:20'],
+            'telefono' => ['required', 'string', 'regex:/^\d{8}$/'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'device_name' => ['sometimes', 'string', 'max:255'],
         ];
@@ -38,6 +50,7 @@ class CompletarRegistroRequest extends FormRequest
             'carrera_id.required' => 'La carrera es obligatoria.',
             'carrera_id.exists' => 'La carrera seleccionada no existe.',
             'telefono.required' => 'El teléfono es obligatorio.',
+            'telefono.regex' => 'El teléfono debe tener 8 dígitos (ej: 1234-5678).',
             'password.required' => 'La contraseña es obligatoria.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
         ];

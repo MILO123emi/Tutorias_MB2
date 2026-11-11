@@ -26,7 +26,7 @@ class SesionController extends Controller
         return response()->json([
             'message' => 'Sesión iniciada.',
             'token' => $resultado['token'],
-            'usuario' => new UserResource($resultado['user']),
+            'usuario' => new UserResource($resultado['user']->load('carrera')),
         ]);
     }
 
@@ -48,6 +48,6 @@ class SesionController extends Controller
     // GET /api/v1/auth/yo
     public function yo(Request $request): JsonResponse
     {
-        return response()->json(['usuario' => new UserResource($request->user())]);
+        return response()->json(['usuario' => new UserResource($request->user()->load('carrera'))]);
     }
 }
