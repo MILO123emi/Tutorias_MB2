@@ -11,13 +11,12 @@ class PerfilTutor extends Model
     protected $table = 'perfil_tutor';
 
     // Los campos de caché (promedio, totales) y el estado de aprobación
-    // los cambia el código del servidor, no se llenan desde una petición.
+    // los cambia el código del servidor (PerfilTutorService), no se llenan desde una petición.
     protected $fillable = [
         'user_id',
         'bio',
         'lugar_presencial_default',
         'enlace_virtual_default',
-        'estado',
     ];
 
     protected function casts(): array
@@ -46,17 +45,6 @@ class PerfilTutor extends Model
         return $this->belongsTo(User::class, 'aprobado_por');
     }
 
-    public function materias()
-    {
-        return $this->belongsToMany(Materia::class,'tutor_materias',
-            'tutor_id','materia_id');
-    }
-
-    public function tutorias()
-    {
-        return $this->hasMany(Tutoria::class, 'perfil_tutor_id'); // O 'tutor_id' según la columna real de tu tabla tutorias
-    }
-
-
-
+    // Las materias del tutor se guardan por user_id (tutor_materias.tutor_id -> users.id).
+    // Se leen con $perfil->user->materias o $user->materias, nunca desde el perfil.
 }

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             ParametroSeeder::class,
             AdminSeeder::class,
             EstudiantePruebaSeeder::class,
+            TutoresPruebaSeeder::class,
         ]);
     }
 }

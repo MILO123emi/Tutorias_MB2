@@ -1,54 +1,43 @@
 <?php
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\PerfilTutor;
-use App\Models\Tutoria;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\ListarTutoriasRequest;
+use App\Http\Requests\ReservarTutoriaRequest;
+use App\Http\Resources\TutoriaResource;
+use App\Services\TutoriaService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TutoriaController extends Controller
 {
-    public function index(Request $request)
+    public function __construct(private TutoriaService $tutorias) {}
+
+    // POST /api/v1/tutorias   (reservar un bloque)
+    public function store(ReservarTutoriaRequest $request): JsonResponse
     {
-        $tutorias = Tutoria::with(['materia'])->paginate(15);
-        return response()->json($tutorias);
-    }
-
-    public function store(Request $request)
-    {
-        $user = Auth::user();
-
-        // Validamos según el JSON que envías en Bruno
-        $request->validate([
-            'estudiante_id' => 'required|exists:users,id',
-            'tutor_id' => 'required|exists:users,id',
-            'materia_id' => 'required|exists:materias,id',
-            'tema' => 'required|string|max:255',
-            'descripcion' => 'nullable|string',
-            'fecha' => 'required|date',
-            'hora_inicio' => 'required|integer',
-            'modalidad' => 'required|in:PRESENCIAL,VIRTUAL',
-            'lugar_o_enlace' => 'nullable|string|max:255',
-            'estado' => 'nullable|string'
-        ]);
-
-        $tutoria = Tutoria::create([
-            'estudiante_id' => $request->estudiante_id,
-            'tutor_id' => $request->tutor_id, // Usamos directamente el tutor_id que viene en el request o del usuario logueado
-            'materia_id' => $request->materia_id,
-            'tema' => $request->tema,
-            'descripcion' => $request->descripcion,
-            'fecha' => $request->fecha,
-            'hora_inicio' => $request->hora_inicio,
-            'modalidad' => $request->modalidad,
-            'lugar_o_enlace' => $request->lugar_o_enlace,
-            'estado' => $request->estado ?? 'CONFIRMADA',
-        ]);
+        $tutoria = $this->tutorias->reservar($request->user(), $request->validated());
 
         return response()->json([
-            'message' => 'Tutoría registrada con éxito.',
-            'data' => $tutoria
+            'message' => 'Tutoría reservada. Te enviamos la confirmación a tu correo.',
+            'data' => new TutoriaResource($tutoria),
         ], 201);
+    }
+
+    // GET /api/v1/mis-tutorias?filtro=proximas|historial   (como estudiante)
+    public function misTutorias(ListarTutoriasRequest $request): AnonymousResourceCollection
+    {
+        return TutoriaResource::collection(
+            $this->tutorias->misTutorias($request->user(), $request->filtro()),
+        );
+    }
+
+    // GET /api/v1/mi-agenda?filtro=hoy|proximas|historial   (solo tutor)
+    public function agenda(ListarTutoriasRequest $request): AnonymousResourceCollection
+    {
+        return TutoriaResource::collection(
+            $this->tutorias->agenda($request->user(), $request->filtro()),
+        );
     }
 }

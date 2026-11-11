@@ -23,11 +23,6 @@ class Tutoria extends Model
         'hora_inicio',
         'modalidad',
         'lugar_o_enlace',
-        'perfil_tutor_id',
-        'titulo',
-        'precio',
-        'cupos',
-        'estado',
     ];
 
     protected function casts(): array

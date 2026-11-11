@@ -3,91 +3,67 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\PerfilTutor;
+use App\Http\Requests\ActualizarPerfilTutorRequest;
+use App\Http\Requests\SincronizarMateriasRequest;
+use App\Http\Requests\SolicitarTutorRequest;
+use App\Http\Resources\MateriaResource;
+use App\Http\Resources\PerfilTutorResource;
+use App\Services\PerfilTutorService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class PerfilTutorController extends Controller
 {
-    // Crear o solicitar perfil de tutor
-    public function store(Request $request)
+    public function __construct(private PerfilTutorService $perfiles) {}
+
+    // POST /api/v1/solicitud-tutor   (postularse, con materias)
+    public function store(SolicitarTutorRequest $request): JsonResponse
     {
-        $user = Auth::user();
-
-        $perfilExistente = PerfilTutor::where('user_id', $user->id)->first();
-        if ($perfilExistente) {
-            return response()->json([
-                'message' => 'Ya cuentas con una solicitud o perfil de tutor registrado.',
-                'perfil' => $perfilExistente
-            ], 400);
-        }
-
-        $request->validate([
-            'bio' => 'nullable|string',
-            'lugar_presencial_default' => 'nullable|string|max:255',
-            'enlace_virtual_default' => 'nullable|string|max:255',
-        ]);
-
-        $perfilTutor = PerfilTutor::create([
-            'user_id' => $user->id,
-            'estado' => 'PENDIENTE', // Valor por defecto en tu BDD
-            'bio' => $request->bio,
-            'lugar_presencial_default' => $request->lugar_presencial_default,
-            'enlace_virtual_default' => $request->enlace_virtual_default,
-        ]);
+        $perfil = $this->perfiles->solicitar(
+            $request->user(),
+            $request->safe()->except('materias'),
+            $request->validated('materias'),
+        );
 
         return response()->json([
-            'message' => 'Solicitud de perfil de tutor enviada con éxito.',
-            'data' => $perfilTutor
+            'message' => 'Postulación enviada. Bienestar la revisará.',
+            'data' => new PerfilTutorResource($perfil),
         ], 201);
     }
 
-    // Consultar el estado actual del perfil del usuario logueado
-    public function miEstado(Request $request)
+    // GET /api/v1/perfil-tutor   (estado de mi postulación / perfil)
+    public function show(Request $request): JsonResponse
     {
-        $perfil = PerfilTutor::where('user_id', Auth::id())->first();
+        $perfil = $request->user()->perfilTutor;
 
-        if (!$perfil) {
-            return response()->json(['message' => 'No tienes un perfil de tutor registrado.'], 404);
-        }
-
-        return response()->json(['data' => $perfil]);
+        return response()->json(['data' => $perfil ? new PerfilTutorResource($perfil) : null]);
     }
-    // Sincronizar / Guardar las materias que imparte el tutor
 
-    public function sincronizarMaterias(Request $request)
+    // PUT /api/v1/perfil-tutor   (bio, lugar y enlace por defecto)
+    public function update(ActualizarPerfilTutorRequest $request): JsonResponse
     {
-        $user = Auth::user();
-        $perfilTutor = PerfilTutor::where('user_id', $user->id)->first();
-
-        if (!$perfilTutor) {
-            return response()->json(['message' => 'No tienes un perfil de tutor registrado.'], 404);
-        }
-
-        $request->validate([
-            'materias' => 'required|array',
-            'materias.*' => 'exists:materias,id' // Valida que los IDs de las materias existan en la BDD
-        ]);
-
-        $perfilTutor->materias()->sync($request->materias);
+        $perfil = $this->perfiles->actualizar($request->user(), $request->validated());
 
         return response()->json([
-            'message' => 'Materias del tutor actualizadas con éxito.',
-            'materias' => $perfilTutor->materias
+            'message' => 'Perfil de tutor actualizado.',
+            'data' => new PerfilTutorResource($perfil),
         ]);
     }
 
-    public function obtenerMaterias(Request $request)
+    // GET /api/v1/perfil-tutor/materias
+    public function materias(Request $request): JsonResponse
     {
-        $user = Auth::user();
-        $perfilTutor = PerfilTutor::where('user_id', $user->id)->first();
+        return response()->json(['data' => MateriaResource::collection($request->user()->materias)]);
+    }
 
-        if (!$perfilTutor) {
-            return response()->json(['message' => 'No tienes un perfil de tutor registrado.'], 404);
-        }
+    // PUT /api/v1/perfil-tutor/materias
+    public function sincronizarMaterias(SincronizarMateriasRequest $request): JsonResponse
+    {
+        $user = $this->perfiles->sincronizarMaterias($request->user(), $request->validated('materias'));
 
         return response()->json([
-            'materias' => $perfilTutor->materias
+            'message' => 'Materias actualizadas.',
+            'data' => MateriaResource::collection($user->materias),
         ]);
     }
 }
