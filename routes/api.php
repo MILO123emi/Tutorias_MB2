@@ -6,9 +6,12 @@ use App\Http\Controllers\Api\V1\DispositivoController;
 use App\Http\Controllers\Api\V1\MateriaController;
 use App\Http\Controllers\Api\V1\NotificacionController;
 use App\Http\Controllers\Api\V1\PerfilController;
+use App\Http\Controllers\Api\V1\PerfilTutorController;
 use App\Http\Controllers\Api\V1\RecuperacionController;
 use App\Http\Controllers\Api\V1\RegistroController;
 use App\Http\Controllers\Api\V1\SesionController;
+use App\Http\Controllers\Api\V1\TutorController;
+use App\Http\Controllers\Api\V1\TutoriaController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -62,5 +65,17 @@ Route::prefix('v1')->group(function () {
         // Dispositivos para push (FCM)
         Route::post('dispositivos', [DispositivoController::class, 'store']);
         Route::delete('dispositivos', [DispositivoController::class, 'destroy']);
+
+        // ---------- Módulo de Tutores ----------
+        Route::get('tutores', [TutorController::class, 'index']);
+        Route::post('perfil-tutor/solicitar', [PerfilTutorController::class, 'store']);
+        Route::get('perfil-tutor/mi-estado', [PerfilTutorController::class, 'miEstado']);
+        Route::post('perfil-tutor/materias', [PerfilTutorController::class, 'sincronizarMaterias']);
+        Route::get('perfil-tutor/materias', [PerfilTutorController::class, 'obtenerMaterias']);
+
+        // ---------- Módulo de Tutorías / Secciones ----------
+        Route::post('tutor/secciones', [TutoriaController::class, 'store']);
+        Route::get('tutor/secciones', [TutoriaController::class, 'index']);
     });
 });
+

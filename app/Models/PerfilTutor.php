@@ -17,6 +17,7 @@ class PerfilTutor extends Model
         'bio',
         'lugar_presencial_default',
         'enlace_virtual_default',
+        'estado',
     ];
 
     protected function casts(): array
@@ -44,4 +45,18 @@ class PerfilTutor extends Model
     {
         return $this->belongsTo(User::class, 'aprobado_por');
     }
+
+    public function materias()
+    {
+        return $this->belongsToMany(Materia::class,'tutor_materias',
+            'tutor_id','materia_id');
+    }
+
+    public function tutorias()
+    {
+        return $this->hasMany(Tutoria::class, 'perfil_tutor_id'); // O 'tutor_id' según la columna real de tu tabla tutorias
+    }
+
+
+
 }

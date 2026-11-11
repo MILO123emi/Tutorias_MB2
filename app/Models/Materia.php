@@ -25,4 +25,9 @@ class Materia extends Model
     {
         return $this->belongsToMany(User::class, 'tutor_materias', 'materia_id', 'tutor_id');
     }
+
+    public function perfilesTutores()
+    {
+        return $this->belongsToMany(PerfilTutor::class, 'tutor_materias', 'materia_id', 'perfil_tutor_id');
+    }
 }
