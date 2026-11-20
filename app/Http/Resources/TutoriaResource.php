@@ -7,6 +7,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class TutoriaResource extends JsonResource
 {
+    private bool $incluirContacto = false;
+
+    public function conContacto(): static
+    {
+        $this->incluirContacto = true;
+
+        return $this;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -31,6 +40,13 @@ class TutoriaResource extends JsonResource
                 'id' => $this->tutor->id,
                 'name' => $this->tutor->name,
                 'foto_url' => $this->tutor->foto_url,
+                'telefono' => $this->when($this->incluirContacto, fn () => $this->tutor->telefono),
+            ]),
+            'estudiante' => $this->whenLoaded('estudiante', fn () => [
+                'id' => $this->estudiante->id,
+                'name' => $this->estudiante->name,
+                'foto_url' => $this->estudiante->foto_url,
+                'telefono' => $this->when($this->incluirContacto, fn () => $this->estudiante->telefono),
             ]),
             'calificada' => $this->whenLoaded('evaluacion', fn () => $this->evaluacion !== null),
         ];
