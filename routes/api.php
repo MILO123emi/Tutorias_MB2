@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AgendaController;
+use App\Http\Controllers\Api\V1\BloqueController;
+use App\Http\Controllers\Api\V1\DisponibilidadController;
+use App\Http\Controllers\Api\V1\TutoriaController;
+
 use App\Http\Controllers\Api\V1\CarreraController;
 use App\Http\Controllers\Api\V1\CitacionController;
 use App\Http\Controllers\Api\V1\DispositivoController;
@@ -73,5 +78,16 @@ Route::prefix('v1')->group(function () {
 
         // Tutorías del estudiante
         Route::get('mis-tutorias', [MisTutoriasController::class, 'index']);
+
+        Route::get('tutores/{id}/bloques', [BloqueController::class, 'index'])->whereNumber('id');
+        Route::post('tutorias', [TutoriaController::class, 'store']);
+        Route::get('tutorias/{tutoria}', [TutoriaController::class, 'show'])->whereNumber('tutoria');
+
+        Route::middleware('tutor')->group(function () {
+            Route::get('mi-agenda', [AgendaController::class, 'index']);
+            Route::get('mi-disponibilidad', [DisponibilidadController::class, 'show']);
+            Route::put('mi-disponibilidad', [DisponibilidadController::class, 'update']);
+        });
+
     });
 });
