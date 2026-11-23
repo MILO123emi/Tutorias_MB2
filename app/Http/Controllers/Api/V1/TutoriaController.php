@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CancelarTutoriaRequest;
 use App\Http\Requests\ReservarTutoriaRequest;
 use App\Http\Resources\TutoriaResource;
 use App\Models\Tutoria;
@@ -17,6 +18,11 @@ class TutoriaController extends Controller
         $tutoria = $servicio->reservar($request->user(), $request->validated());
 
         return (new TutoriaResource($tutoria))->conContacto()->response()->setStatusCode(201);
+    }
+
+    public function cancelar(CancelarTutoriaRequest $request, Tutoria $tutoria, TutoriaService $servicio): TutoriaResource
+    {
+        return (new TutoriaResource($servicio->cancelar($request->user(), $tutoria, $request->validated('motivo'))))->conContacto();
     }
 
     public function show(Tutoria $tutoria): TutoriaResource

@@ -16,7 +16,7 @@ class AgendaController extends Controller
         $datos = $request->validate(['tipo' => ['nullable', Rule::in(['hoy', 'proximas', 'historial'])]]);
         $tipo = $datos['tipo'] ?? 'hoy';
         $tutorias = Tutoria::where('tutor_id', $request->user()->id)
-            ->when($tipo === 'hoy', fn ($query) => $query->where('fecha', today()->toDateString()))
+            ->when($tipo === 'hoy', fn ($query) => $query->where('fecha', today()->toDateString())->whereNotIn('estado', ['CANCELADA_TUTOR', 'CANCELADA_ESTUDIANTE']))
             ->when($tipo === 'proximas', fn ($query) => $query->where('estado', 'CONFIRMADA'))
             ->when($tipo === 'historial', fn ($query) => $query->where('estado', '!=', 'CONFIRMADA'))
             ->orderBy('fecha', $tipo === 'historial' ? 'desc' : 'asc')

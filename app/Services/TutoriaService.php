@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\Mail\TutoriaReservadaMail;
 use App\Models\Tutoria;
+use App\Models\TutoriaNoRealizada;
 use App\Models\User;
+use App\Notifications\TutoriaCancelada;
 use App\Notifications\TutoriaReservada;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +23,35 @@ class TutoriaService
         private ParametroService $parametros,
         private BitacoraService $bitacora,
     ) {}
+
+    public function cancelar(User $actor, Tutoria $tutoria, string $motivo): Tutoria
+    {
+        return DB::transaction(function () use ($actor, $tutoria, $motivo): Tutoria {
+            $tutoria = Tutoria::whereKey($tutoria->id)->lockForUpdate()->firstOrFail();
+            Gate::forUser($actor)->authorize('cancel', $tutoria);
+            abort_unless($tutoria->estado === 'CONFIRMADA', 409, 'La tutoría ya no está confirmada.');
+            $inicio = CarbonImmutable::parse($tutoria->fecha->format('Y-m-d'), config('app.timezone'))
+                ->setTime($tutoria->hora_inicio, 0);
+            if (! $this->disponibilidad->cumpleAnticipacion($inicio)) {
+                throw ValidationException::withMessages(['tutoria' => 'La tutoría no cumple la anticipación mínima para cancelar.']);
+            }
+            $tutoria->estado = $actor->id === $tutoria->estudiante_id ? 'CANCELADA_ESTUDIANTE' : 'CANCELADA_TUTOR';
+            $tutoria->save();
+            TutoriaNoRealizada::create([
+                'tutoria_id' => $tutoria->id,
+                'tipo' => $tutoria->estado,
+                'reportado_por' => $actor->id,
+                'motivo_para_admin' => $motivo,
+                'motivo_para_contraparte' => null,
+            ]);
+            $this->bitacora->registrar($actor, 'TUTORIA_CANCELADA', 'tutorias', $tutoria->id);
+            $tutoria->load(['materia', 'tutor', 'estudiante', 'evaluacion']);
+            $contraparte = $actor->id === $tutoria->estudiante_id ? $tutoria->tutor : $tutoria->estudiante;
+            $contraparte->notify(new TutoriaCancelada($tutoria));
+
+            return $tutoria;
+        }, 3);
+    }
 
     /**
      * @param  array{tutor_id: int, fecha: string, hora_inicio: int, materia_id: int, tema: string, descripcion?: ?string}  $datos

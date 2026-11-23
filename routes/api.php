@@ -2,11 +2,9 @@
 
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\BloqueController;
-use App\Http\Controllers\Api\V1\DisponibilidadController;
-use App\Http\Controllers\Api\V1\TutoriaController;
-
 use App\Http\Controllers\Api\V1\CarreraController;
 use App\Http\Controllers\Api\V1\CitacionController;
+use App\Http\Controllers\Api\V1\DisponibilidadController;
 use App\Http\Controllers\Api\V1\DispositivoController;
 use App\Http\Controllers\Api\V1\MateriaController;
 use App\Http\Controllers\Api\V1\MisTutoriasController;
@@ -16,6 +14,7 @@ use App\Http\Controllers\Api\V1\RecuperacionController;
 use App\Http\Controllers\Api\V1\RegistroController;
 use App\Http\Controllers\Api\V1\SesionController;
 use App\Http\Controllers\Api\V1\TutorController;
+use App\Http\Controllers\Api\V1\TutoriaController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -80,6 +79,7 @@ Route::prefix('v1')->group(function () {
         Route::get('mis-tutorias', [MisTutoriasController::class, 'index']);
 
         Route::get('tutores/{id}/bloques', [BloqueController::class, 'index'])->whereNumber('id');
+        Route::post('tutorias/{tutoria}/cancelar', [TutoriaController::class, 'cancelar'])->whereNumber('tutoria');
         Route::post('tutorias', [TutoriaController::class, 'store']);
         Route::get('tutorias/{tutoria}', [TutoriaController::class, 'show'])->whereNumber('tutoria');
 
