@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CancelarTutoriaRequest;
+use App\Http\Requests\ReportarInasistenciaRequest;
 use App\Http\Requests\ReservarTutoriaRequest;
 use App\Http\Resources\TutoriaResource;
 use App\Models\Tutoria;
 use App\Services\TutoriaService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class TutoriaController extends Controller
@@ -23,6 +25,16 @@ class TutoriaController extends Controller
     public function cancelar(CancelarTutoriaRequest $request, Tutoria $tutoria, TutoriaService $servicio): TutoriaResource
     {
         return (new TutoriaResource($servicio->cancelar($request->user(), $tutoria, $request->validated('motivo'))))->conContacto();
+    }
+
+    public function asistencia(Request $request, Tutoria $tutoria, TutoriaService $servicio): TutoriaResource
+    {
+        return (new TutoriaResource($servicio->confirmarAsistencia($request->user(), $tutoria)))->conContacto();
+    }
+
+    public function inasistencia(ReportarInasistenciaRequest $request, Tutoria $tutoria, TutoriaService $servicio): TutoriaResource
+    {
+        return (new TutoriaResource($servicio->reportarInasistencia($request->user(), $tutoria, $request->validated('motivo'))))->conContacto();
     }
 
     public function show(Tutoria $tutoria): TutoriaResource

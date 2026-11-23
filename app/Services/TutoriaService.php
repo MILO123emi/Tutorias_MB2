@@ -6,6 +6,7 @@ use App\Mail\TutoriaReservadaMail;
 use App\Models\Tutoria;
 use App\Models\TutoriaNoRealizada;
 use App\Models\User;
+use App\Notifications\InasistenciaReportada;
 use App\Notifications\TutoriaCancelada;
 use App\Notifications\TutoriaReservada;
 use Carbon\CarbonImmutable;
@@ -53,6 +54,104 @@ class TutoriaService
         }, 3);
     }
 
+    // El tutor confirma desde que empieza la tutoría hasta que vence su plazo.
+    public function confirmarAsistencia(User $tutor, Tutoria $tutoria): Tutoria
+    {
+        return DB::transaction(function () use ($tutor, $tutoria): Tutoria {
+            $tutoria = Tutoria::whereKey($tutoria->id)->lockForUpdate()->firstOrFail();
+            Gate::forUser($tutor)->authorize('confirmarAsistencia', $tutoria);
+            abort_unless($tutoria->estado === 'CONFIRMADA', 409, 'La tutoría ya no está confirmada.');
+            $this->validarVentana($tutoria, $this->parametros->entero('horas_para_confirmar', 24), 'confirmar la asistencia');
+
+            $tutoria->estado = 'COMPLETADA';
+            $tutoria->asistencia_confirmada_at = now();
+            $tutoria->save();
+            $this->bitacora->registrar($tutor, 'ASISTENCIA_CONFIRMADA', 'tutorias', $tutoria->id);
+
+            return $tutoria->load(['materia', 'tutor', 'estudiante', 'evaluacion']);
+        }, 3);
+    }
+
+    // Quien reporta deja constancia de que faltó la otra parte. El motivo solo lo ve administración.
+    public function reportarInasistencia(User $actor, Tutoria $tutoria, string $motivo): Tutoria
+    {
+        return DB::transaction(function () use ($actor, $tutoria, $motivo): Tutoria {
+            $tutoria = Tutoria::whereKey($tutoria->id)->lockForUpdate()->firstOrFail();
+            Gate::forUser($actor)->authorize('reportarInasistencia', $tutoria);
+            abort_unless($tutoria->estado === 'CONFIRMADA', 409, 'La tutoría ya no está confirmada.');
+            $this->validarVentana($tutoria, $this->parametros->entero('horas_para_sin_confirmar', 48), 'reportar la inasistencia');
+
+            $tutoria->estado = $actor->id === $tutoria->estudiante_id ? 'NO_ASISTIO_TUTOR' : 'NO_ASISTIO_ESTUDIANTE';
+            $tutoria->save();
+            TutoriaNoRealizada::create([
+                'tutoria_id' => $tutoria->id,
+                'tipo' => $tutoria->estado,
+                'reportado_por' => $actor->id,
+                'motivo_para_admin' => $motivo,
+                'motivo_para_contraparte' => null,
+            ]);
+            $this->bitacora->registrar($actor, 'INASISTENCIA_REPORTADA', 'tutorias', $tutoria->id, requiereAtencion: true);
+            $tutoria->load(['materia', 'tutor', 'estudiante', 'evaluacion']);
+            $contraparte = $actor->id === $tutoria->estudiante_id ? $tutoria->tutor : $tutoria->estudiante;
+            $contraparte->notify(new InasistenciaReportada($tutoria));
+
+            return $tutoria;
+        }, 3);
+    }
+
+    // Lo usa el comando programado: cierra lo que nadie confirmó ni reportó dentro del plazo.
+    public function cerrarVencidas(): int
+    {
+        $ahora = CarbonImmutable::now(config('app.timezone'));
+        $horas = $this->parametros->entero('horas_para_sin_confirmar', 48);
+        $cerradas = 0;
+
+        Tutoria::where('estado', 'CONFIRMADA')->whereDate('fecha', '<=', $ahora->toDateString())
+            ->select(['id', 'fecha', 'hora_inicio'])
+            ->chunkById(100, function ($tutorias) use ($ahora, $horas, &$cerradas): void {
+                foreach ($tutorias as $tutoria) {
+                    if ($ahora->lte($this->inicioDe($tutoria)->addHour()->addHours($horas))) {
+                        continue;
+                    }
+                    $cerradas += DB::transaction(function () use ($tutoria): int {
+                        // Se vuelve a leer por si alguien confirmó mientras corría el comando.
+                        $actual = Tutoria::whereKey($tutoria->id)->lockForUpdate()->first();
+                        if ($actual?->estado !== 'CONFIRMADA') {
+                            return 0;
+                        }
+                        $actual->estado = 'SIN_CONFIRMAR';
+                        $actual->save();
+                        TutoriaNoRealizada::create(['tutoria_id' => $actual->id, 'tipo' => 'SIN_CONFIRMAR', 'reportado_por' => null]);
+                        $this->bitacora->registrar(null, 'TUTORIA_SIN_CONFIRMAR', 'tutorias', $actual->id, requiereAtencion: true);
+
+                        return 1;
+                    }, 3);
+                }
+            });
+
+        return $cerradas;
+    }
+
+    private function inicioDe(Tutoria $tutoria): CarbonImmutable
+    {
+        return CarbonImmutable::parse($tutoria->fecha->format('Y-m-d'), config('app.timezone'))
+            ->setTime($tutoria->hora_inicio, 0);
+    }
+
+    // La ventana abre al empezar la tutoría y cierra las horas indicadas después de terminar.
+    private function validarVentana(Tutoria $tutoria, int $horas, string $accion): void
+    {
+        $ahora = CarbonImmutable::now(config('app.timezone'));
+        $inicio = $this->inicioDe($tutoria);
+
+        if ($ahora->lt($inicio)) {
+            throw ValidationException::withMessages(['tutoria' => "Podrás {$accion} cuando empiece la tutoría."]);
+        }
+        if ($ahora->gt($inicio->addHour()->addHours($horas))) {
+            throw ValidationException::withMessages(['tutoria' => "Ya pasó el plazo para {$accion}."]);
+        }
+    }
+
     /**
      * @param  array{tutor_id: int, fecha: string, hora_inicio: int, materia_id: int, tema: string, descripcion?: ?string}  $datos
      */
@@ -95,7 +194,7 @@ class TutoriaService
                 ->whereNotIn('estado', ['CANCELADA_TUTOR', 'CANCELADA_ESTUDIANTE'])
                 ->lockForUpdate()->get(['id', 'hora_inicio', 'estado']);
             if ($reservas->whereIn('estado', ['CONFIRMADA', 'COMPLETADA'])->contains('hora_inicio', $hora)) {
-                throw ValidationException::withMessages(['hora_inicio' => 'Ese bloque ya fue reservado']);
+                abort(409, 'Ese bloque ya fue reservado.');
             }
             if (Tutoria::where('estudiante_id', $estudiante->id)->where('fecha', $datos['fecha'])
                 ->where('hora_inicio', $hora)->ocupanBloque()->lockForUpdate()->first(['id'])) {
@@ -115,7 +214,7 @@ class TutoriaService
             try {
                 $tutoria->save();
             } catch (UniqueConstraintViolationException) {
-                throw ValidationException::withMessages(['hora_inicio' => 'Ese bloque ya fue reservado']);
+                abort(409, 'Ese bloque ya fue reservado.');
             }
 
             $tutoria->load(['materia', 'tutor', 'estudiante', 'evaluacion']);

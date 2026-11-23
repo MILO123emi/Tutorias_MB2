@@ -1,0 +1,444 @@
+{
+  "info": {
+    "name": "Tutorías API v1",
+    "description": "Bloques, reservas, cancelación y asistencia.\n\nErrores: siempre {\"message\": \"...\"}. 401 sin sesión, 403 sin permiso, 404 no existe, 409 estado o bloque en conflicto, 422 validación (agrega \"errors\" por campo), 429 demasiados intentos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "tutor_id",
+      "value": "1"
+    },
+    {
+      "key": "materia_id",
+      "value": "1"
+    },
+    {
+      "key": "tutoria_id",
+      "value": "1"
+    },
+    {
+      "key": "fecha",
+      "value": "2026-11-25"
+    }
+  ],
+  "item": [
+    {
+      "name": "Sesión",
+      "item": [
+        {
+          "name": "Iniciar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Guarda el token en la variable de la colección.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usuario@unicah.edu\",\n  \"password\": \"tu-contraseña\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const datos = pm.response.json();",
+                  "const token = datos.token || datos.access_token || (datos.data && datos.data.token);",
+                  "if (token) { pm.collectionVariables.set('token', token); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bloques y reservas",
+      "item": [
+        {
+          "name": "Bloques libres de un tutor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tutores/{{tutor_id}}/bloques?fecha={{fecha}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tutores",
+                "{{tutor_id}}",
+                "bloques"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "{{fecha}}"
+                }
+              ]
+            },
+            "description": "Fecha entre hoy y los próximos 7 días, sin domingos.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reservar tutoría",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tutorias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tutorias"
+              ]
+            },
+            "description": "Solo estudiantes. Responde 409 si el bloque ya fue reservado.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tutor_id\": \"{{tutor_id}}\",\n  \"materia_id\": \"{{materia_id}}\",\n  \"fecha\": \"{{fecha}}\",\n  \"hora_inicio\": 14,\n  \"tema\": \"Derivadas implícitas\",\n  \"descripcion\": \"Quiero repasar ejercicios.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('tutoria_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de tutoría",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tutorias/{{tutoria_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tutorias",
+                "{{tutoria_id}}"
+              ]
+            },
+            "description": "Solo participantes o administración.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mis tutorías",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mis-tutorias?tipo=proximas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mis-tutorias"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "proximas"
+                }
+              ]
+            },
+            "description": "tipo: proximas o historial.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agenda del tutor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mi-agenda?tipo=proximas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mi-agenda"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "proximas"
+                }
+              ]
+            },
+            "description": "Solo tutores aprobados. tipo: hoy, proximas o historial.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cancelación y asistencia",
+      "item": [
+        {
+          "name": "Cancelar tutoría",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tutorias/{{tutoria_id}}/cancelar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tutorias",
+                "{{tutoria_id}}",
+                "cancelar"
+              ]
+            },
+            "description": "Respeta la anticipación mínima. El motivo solo lo ve administración.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Surgió un inconveniente.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirmar asistencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tutorias/{{tutoria_id}}/asistencia",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tutorias",
+                "{{tutoria_id}}",
+                "asistencia"
+              ]
+            },
+            "description": "Solo el tutor, desde que empieza hasta horas_para_confirmar después de terminar. Pasa a COMPLETADA.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reportar inasistencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tutorias/{{tutoria_id}}/inasistencia",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tutorias",
+                "{{tutoria_id}}",
+                "inasistencia"
+              ]
+            },
+            "description": "Estudiante o tutor, desde que empieza hasta horas_para_sin_confirmar después de terminar. Pasa a NO_ASISTIO_TUTOR o NO_ASISTIO_ESTUDIANTE.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"La otra parte no se presentó.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

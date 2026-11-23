@@ -80,6 +80,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('tutores/{id}/bloques', [BloqueController::class, 'index'])->whereNumber('id');
         Route::post('tutorias/{tutoria}/cancelar', [TutoriaController::class, 'cancelar'])->whereNumber('tutoria');
+        Route::post('tutorias/{tutoria}/asistencia', [TutoriaController::class, 'asistencia'])->whereNumber('tutoria');
+        Route::post('tutorias/{tutoria}/inasistencia', [TutoriaController::class, 'inasistencia'])->whereNumber('tutoria');
         Route::post('tutorias', [TutoriaController::class, 'store']);
         Route::get('tutorias/{tutoria}', [TutoriaController::class, 'show'])->whereNumber('tutoria');
 

@@ -5,11 +5,15 @@ use App\Http\Middleware\EnsureCuentaActiva;
 use App\Http\Middleware\EnsureTutor;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -37,4 +41,21 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // El API siempre responde {"message": "..."} en español y sin nombres internos de modelos.
+        $exceptions->render(fn (AuthenticationException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => 'Tu sesión venció. Inicia sesión de nuevo.'], 401)
+            : null);
+        $exceptions->render(fn (NotFoundHttpException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => 'No encontramos lo que buscabas.'], 404)
+            : null);
+        $exceptions->render(fn (ThrottleRequestsException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => 'Demasiados intentos. Espera un momento.'], 429, $e->getHeaders())
+            : null);
+        // Los 403 con mensaje propio (cuenta suspendida, rol) se conservan.
+        $exceptions->render(fn (AccessDeniedHttpException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage() === 'This action is unauthorized.' || $e->getMessage() === ''
+                ? 'No tienes permiso para realizar esta acción.'
+                : $e->getMessage()], 403)
+            : null);
     })->create();
