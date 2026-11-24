@@ -27,6 +27,11 @@ class TutoriaPolicy
         return $this->cancel($user, $tutoria);
     }
 
+    public function calificar(User $user, Tutoria $tutoria): bool
+    {
+        return ! $user->esAdmin() && $user->id === $tutoria->estudiante_id;
+    }
+
     public function create(User $user): bool
     {
         return $user->rol === 'ESTUDIANTE';

@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('tutoria_id')->unique()->constrained('tutorias')->cascadeOnDelete();
             $table->foreignId('estudiante_id')->constrained('users');
             $table->foreignId('tutor_id')->constrained('users');
-            $table->unsignedTinyInteger('puntuacion'); // 1 a 10 (se valida en el código)
+            $table->unsignedTinyInteger('puntuacion'); // 1 a 5 (se valida en el código)
             $table->text('comentario')->nullable();    // solo lo ve la admin
             $table->timestamps();
 
