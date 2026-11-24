@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\MateriaController;
 use App\Http\Controllers\Api\V1\MisTutoriasController;
 use App\Http\Controllers\Api\V1\NotificacionController;
 use App\Http\Controllers\Api\V1\PerfilController;
+use App\Http\Controllers\Api\V1\PostulacionController;
 use App\Http\Controllers\Api\V1\RecuperacionController;
 use App\Http\Controllers\Api\V1\RegistroController;
 use App\Http\Controllers\Api\V1\SesionController;
@@ -56,6 +57,10 @@ Route::prefix('v1')->group(function () {
         Route::put('perfil/password', [PerfilController::class, 'updatePassword']);
         Route::post('perfil/foto', [PerfilController::class, 'subirFoto']);
         Route::get('perfil/foto/solicitud', [PerfilController::class, 'solicitudFoto']);
+
+        // Postulación a tutor
+        Route::post('postulaciones', [PostulacionController::class, 'store']);
+        Route::get('postulaciones/mia', [PostulacionController::class, 'mia']);
 
         // Notificaciones (campanita)
         Route::get('notificaciones', [NotificacionController::class, 'index']);
