@@ -202,7 +202,7 @@ class TutoriaService
             }
             $limite = $this->parametros->entero('max_tutorias_por_dia');
             if ($limite !== null && $reservas->count() >= $limite) {
-                throw ValidationException::withMessages(['tutor_id' => 'El tutor ya no tiene cupo ese día']);
+                throw ValidationException::withMessages(['tutor_id' => 'El tutor ya no tiene cupo ese día.']);
             }
 
             $tutoria = new Tutoria(Arr::only($datos, ['fecha', 'hora_inicio', 'materia_id', 'tema', 'descripcion']));

@@ -119,3 +119,17 @@ test('los errores de validación llegan en español', function () {
     $this->postJson("/api/v1/tutorias/{$tutoria->id}/cancelar", [])
         ->assertUnprocessable()->assertJsonPath('errors.motivo.0', 'El campo motivo es obligatorio.');
 });
+
+test('el API responde 429 en español cuando se pasa el límite de intentos', function () {
+    $respuesta = null;
+
+    foreach (range(1, 11) as $intento) {
+        $respuesta = $this->postJson('/api/v1/auth/login', [
+            'email' => "invalido{$intento}@unicah.edu",
+            'password' => 'incorrecta',
+        ]);
+    }
+
+    $respuesta->assertStatus(429)
+        ->assertExactJson(['message' => 'Demasiados intentos. Espera un momento.']);
+});
