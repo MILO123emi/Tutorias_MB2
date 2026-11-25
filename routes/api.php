@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\FotoAdminController;
+use App\Http\Controllers\Api\V1\Admin\PostulacionAdminController;
+use App\Http\Controllers\Api\V1\Admin\ResumenController;
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\BloqueController;
 use App\Http\Controllers\Api\V1\CarreraController;
@@ -98,4 +101,17 @@ Route::prefix('v1')->group(function () {
         });
 
     });
+
+    // ---------- Solo admin ----------
+    Route::middleware(['auth:sanctum', 'cuenta.activa', 'admin'])
+        ->prefix('admin')
+        ->group(function () {
+            Route::get('resumen', [ResumenController::class, 'show']);
+            Route::get('postulaciones', [PostulacionAdminController::class, 'index']);
+            Route::post('postulaciones/{perfil}/aprobar', [PostulacionAdminController::class, 'aprobar'])->whereNumber('perfil');
+            Route::post('postulaciones/{perfil}/rechazar', [PostulacionAdminController::class, 'rechazar'])->whereNumber('perfil');
+            Route::get('fotos', [FotoAdminController::class, 'index']);
+            Route::post('fotos/{solicitud}/aprobar', [FotoAdminController::class, 'aprobar'])->whereNumber('solicitud');
+            Route::post('fotos/{solicitud}/rechazar', [FotoAdminController::class, 'rechazar'])->whereNumber('solicitud');
+        });
 });

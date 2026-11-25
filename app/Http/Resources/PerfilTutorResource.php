@@ -9,6 +9,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin PerfilTutor */
 class PerfilTutorResource extends JsonResource
 {
+    private bool $incluirPostulante = false;
+
+    public function conPostulante(): static
+    {
+        $this->incluirPostulante = true;
+
+        return $this;
+    }
+
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
@@ -24,6 +33,17 @@ class PerfilTutorResource extends JsonResource
                 $this->resource->getRelation('user')->getRelation('materias')
             )),
             'created_at' => $this->created_at,
+            'postulante' => $this->when($this->incluirPostulante && $this->resource->relationLoaded('user'), fn () => [
+                'id' => data_get($this->resource->getRelation('user'), 'id'),
+                'name' => data_get($this->resource->getRelation('user'), 'name'),
+                'email' => data_get($this->resource->getRelation('user'), 'email'),
+                'telefono' => data_get($this->resource->getRelation('user'), 'telefono'),
+                'foto_url' => data_get($this->resource->getRelation('user'), 'foto_url'),
+                'carrera' => data_get($this->resource->getRelation('user'), 'carrera') ? [
+                    'id' => data_get($this->resource->getRelation('user'), 'carrera.id'),
+                    'nombre' => data_get($this->resource->getRelation('user'), 'carrera.nombre'),
+                ] : null,
+            ]),
         ];
     }
 }

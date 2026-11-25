@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Models\SolicitudFoto;
 use App\Models\User;
+use App\Notifications\FotoRevisada;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -88,5 +91,58 @@ class PerfilService
     public function solicitudPendiente(User $user): ?SolicitudFoto
     {
         return SolicitudFoto::where('user_id', $user->id)->pendientes()->latest()->first();
+    }
+
+    /** @return LengthAwarePaginator<int, SolicitudFoto> */
+    public function fotosPendientes(): LengthAwarePaginator
+    {
+        return SolicitudFoto::pendientes()->with('user.perfilTutor')
+            ->orderBy('created_at')->orderBy('id')->paginate(15);
+    }
+
+    public function aprobarFoto(User $admin, SolicitudFoto $solicitud): SolicitudFoto
+    {
+        return DB::transaction(function () use ($admin, $solicitud): SolicitudFoto {
+            $solicitud = SolicitudFoto::whereKey($solicitud->id)->lockForUpdate()->firstOrFail();
+            abort_unless($solicitud->estado === 'PENDIENTE', 409, 'Esta foto ya fue revisada.');
+            $usuario = User::whereKey($solicitud->user_id)->lockForUpdate()->firstOrFail();
+            $usuario->forceFill(['foto_url' => $solicitud->foto_nueva_url])->save();
+            $solicitud->forceFill(['estado' => 'APROBADA', 'revisado_por' => $admin->id])->save();
+
+            $otras = SolicitudFoto::where('user_id', $usuario->id)->pendientes()
+                ->whereKeyNot($solicitud->id)->lockForUpdate()->get();
+            foreach ($otras as $otra) {
+                $otra->forceFill([
+                    'estado' => 'RECHAZADA', 'motivo_rechazo' => 'Se aprobó otra foto de perfil.',
+                    'revisado_por' => $admin->id,
+                ])->save();
+                $this->bitacora->marcarRevisados($admin, 'FOTO_SOLICITADA', 'solicitudes_foto', $otra->id);
+            }
+
+            $this->bitacora->marcarRevisados($admin, 'FOTO_SOLICITADA', 'solicitudes_foto', $solicitud->id);
+            $this->bitacora->registrar($admin, 'FOTO_APROBADA', 'solicitudes_foto', $solicitud->id,
+                "Aprobó la foto de {$usuario->name}.");
+            $usuario->notify(new FotoRevisada($solicitud, 'APROBADA', null));
+
+            return $solicitud->load('user.perfilTutor');
+        }, 3);
+    }
+
+    public function rechazarFoto(User $admin, SolicitudFoto $solicitud, string $motivo): SolicitudFoto
+    {
+        return DB::transaction(function () use ($admin, $solicitud, $motivo): SolicitudFoto {
+            $solicitud = SolicitudFoto::whereKey($solicitud->id)->lockForUpdate()->firstOrFail();
+            abort_unless($solicitud->estado === 'PENDIENTE', 409, 'Esta foto ya fue revisada.');
+            $usuario = User::whereKey($solicitud->user_id)->lockForUpdate()->firstOrFail();
+            $solicitud->forceFill([
+                'estado' => 'RECHAZADA', 'motivo_rechazo' => $motivo, 'revisado_por' => $admin->id,
+            ])->save();
+            $this->bitacora->marcarRevisados($admin, 'FOTO_SOLICITADA', 'solicitudes_foto', $solicitud->id);
+            $this->bitacora->registrar($admin, 'FOTO_RECHAZADA', 'solicitudes_foto', $solicitud->id,
+                "Rechazó la foto de {$usuario->name}.");
+            $usuario->notify(new FotoRevisada($solicitud, 'RECHAZADA', $motivo));
+
+            return $solicitud->load('user.perfilTutor');
+        }, 3);
     }
 }
