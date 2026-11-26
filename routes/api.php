@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\BitacoraAdminController;
+use App\Http\Controllers\Api\V1\Admin\CitacionAdminController;
 use App\Http\Controllers\Api\V1\Admin\FotoAdminController;
+use App\Http\Controllers\Api\V1\Admin\NoRealizadaAdminController;
 use App\Http\Controllers\Api\V1\Admin\PostulacionAdminController;
 use App\Http\Controllers\Api\V1\Admin\ResumenController;
 use App\Http\Controllers\Api\V1\AgendaController;
@@ -113,5 +116,10 @@ Route::prefix('v1')->group(function () {
             Route::get('fotos', [FotoAdminController::class, 'index']);
             Route::post('fotos/{solicitud}/aprobar', [FotoAdminController::class, 'aprobar'])->whereNumber('solicitud');
             Route::post('fotos/{solicitud}/rechazar', [FotoAdminController::class, 'rechazar'])->whereNumber('solicitud');
+
+            // Seguimiento
+            Route::get('no-realizadas', [NoRealizadaAdminController::class, 'index']);
+            Route::get('bitacora', [BitacoraAdminController::class, 'index']);
+            Route::post('citaciones', [CitacionAdminController::class, 'store']);
         });
 });

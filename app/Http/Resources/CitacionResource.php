@@ -18,6 +18,10 @@ class CitacionResource extends JsonResource
             'fecha_cita' => $this->fecha_cita,
             'tutoria_id' => $this->tutoria_id,
             'bitacora_id' => $this->bitacora_id,
+            'citado' => $this->whenLoaded('citado', fn () => [
+                'id' => $this->citado->id,
+                'name' => $this->citado->name,
+            ]),
             'enterado' => $this->enterado_at !== null,
             'enterado_at' => $this->enterado_at,
             'created_at' => $this->created_at,

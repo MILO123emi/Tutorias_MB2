@@ -12,6 +12,9 @@ dataset('rutas_admin', [
     ['GET', '/api/v1/admin/fotos'],
     ['POST', '/api/v1/admin/fotos/999999/aprobar'],
     ['POST', '/api/v1/admin/fotos/999999/rechazar'],
+    ['GET', '/api/v1/admin/no-realizadas'],
+    ['GET', '/api/v1/admin/bitacora'],
+    ['POST', '/api/v1/admin/citaciones'],
 ]);
 
 test('las rutas admin requieren autenticacion', function (string $metodo, string $ruta) {

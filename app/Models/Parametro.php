@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Observers\ParametroObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 
+#[ObservedBy([ParametroObserver::class])]
 class Parametro extends Model
 {
     protected $table = 'parametros';
